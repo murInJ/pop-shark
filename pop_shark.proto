@@ -1,0 +1,36 @@
+syntax = "proto3";
+package pop_shark;
+option go_package = "./";
+
+
+message ConnectRequest {
+  string Ip = 1;
+}
+
+message ResetRequest {
+  string Ip = 1;
+  int64 CurrentPlayer = 2;
+}
+
+message StepRequest {
+  string Ip = 1;
+  int64 Start = 2;
+  int64 End = 3;
+  int64 Obstacle = 4;
+}
+
+message DisconnectRequest {
+  string Ip = 1;
+}
+
+message Response{
+  int64 Status = 1;
+  string Info = 2;
+}
+
+service StringServices {
+  rpc Connect(ConnectRequest) returns(Response);
+  rpc Reset(ResetRequest)returns(Response);
+  rpc Step(StepRequest)returns(Response);
+  rpc Disconnect(DisconnectRequest)returns (Response);
+}
