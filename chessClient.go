@@ -63,12 +63,9 @@ func NewChessClient(clientPort string, serverAddress string) (*chessClient, erro
 
 func (c *chessClient) Close() error {
 	request := &DisconnectRequest{Ip: c.clientAddress}
-	res, err := c.client.Disconnect(c.ctx, request)
+	_, err := c.client.Disconnect(c.ctx, request)
 	if err != nil {
 		return err
-	}
-	if res.Status != 0 {
-		return errors.New(res.Info)
 	}
 
 	err = c.connect.Close()

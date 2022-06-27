@@ -187,4 +187,7 @@ func (g *gameGroup) game(ip string) {
 
 end:
 	g.state[ip] = 0
+	fmt.Printf("%s game cloesd from %s\n",
+		color.New(color.FgHiYellow).Sprintf("RPC:"),
+		color.New(color.FgCyan).Sprintf(ip))
 }
