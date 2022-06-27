@@ -5,6 +5,7 @@ a simple microservice platform of amazon chess based on grpc,and create it by li
 MurInJ
 
 ## function
+- It can accept game requests from multiple parties at the same time with ip as the logo and play games in isolation
 
 ## install
 ```shell
@@ -19,8 +20,8 @@ first start a rpc server:
 server := pop_shark.NewChessServer("5001")
 server.Start()
 ```
-if receive request,you will see follows
-![](./preview_server.png)
+if receive request,you will see follows\
+![](./preview_server.png)\
 then we can play game by amazonsChess on client
 
 ```go
@@ -54,4 +55,4 @@ for {
 }
 _ = client.Close()
 ```
-![](./preview_client.png)
+![](./preview_client.png)\
