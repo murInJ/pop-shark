@@ -11,7 +11,7 @@ type mq struct {
 	bufferSize int
 }
 
-func NewMsgQueue() *mq {
+func newMsgQueue() *mq {
 	return &mq{
 		queueMap:   make(map[string]chan interface{}),
 		bufferSize: 25,

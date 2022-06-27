@@ -3,21 +3,22 @@ package pop_shark
 import (
 	"context"
 	"github.com/murInJ/amazonsChess"
+	"log"
 )
 
 type grpcServer struct {
 	service *platformService
 }
 
-func NewGrpcServer() *grpcServer {
-	return &grpcServer{service: NewService()}
+func newGrpcServer() *grpcServer {
+	return &grpcServer{service: newService()}
 }
 
 func (g grpcServer) Connect(ctx context.Context, request *ConnectRequest) (*Response, error) {
 	resStr, err := g.service.connect(request.GetIp())
 
 	if err != nil {
-		return &Response{Status: int64(-1), Info: err.Error()}, err
+		return &Response{Status: int64(-1), Info: err.Error()}, nil
 	}
 
 	m, err := jsonStr2map(resStr)
@@ -25,15 +26,15 @@ func (g grpcServer) Connect(ctx context.Context, request *ConnectRequest) (*Resp
 	if err != nil {
 		return &Response{Status: int64(-1), Info: err.Error()}, err
 	}
-
-	return &Response{Status: m["status"].(int64), Info: ""}, nil
+	status := m["status"].(float64)
+	return &Response{Status: int64(status), Info: ""}, nil
 }
 
 func (g grpcServer) Reset(ctx context.Context, request *ResetRequest) (*Response, error) {
 	resStr, err := g.service.reset(request.GetIp(), int(request.GetCurrentPlayer()))
 
 	if err != nil {
-		return &Response{Status: int64(-1), Info: err.Error()}, err
+		return &Response{Status: int64(-1), Info: err.Error()}, nil
 	}
 
 	m, err := jsonStr2map(resStr)
@@ -42,8 +43,14 @@ func (g grpcServer) Reset(ctx context.Context, request *ResetRequest) (*Response
 		return &Response{Status: int64(-1), Info: err.Error()}, err
 	}
 
-	state := m["state"].(amazonsChess.State)
-	return &Response{Status: m["status"].(int64), Info: state.Str()}, nil
+	s := m["state"].(map[string]interface{})
+	board, err := toIntSlice(s["board"])
+	if err != nil {
+		log.Fatal(err)
+	}
+	currentPlayer := int(s["current_player"].(float64))
+	state := amazonsChess.NewState(&board, currentPlayer)
+	return &Response{Status: int64(m["status"].(float64)), Info: state.Str()}, nil
 }
 
 func (g grpcServer) Step(ctx context.Context, request *StepRequest) (*Response, error) {
@@ -51,7 +58,7 @@ func (g grpcServer) Step(ctx context.Context, request *StepRequest) (*Response, 
 		*amazonsChess.NewChessMove(int(request.GetStart()), int(request.GetEnd()), int(request.GetObstacle())))
 
 	if err != nil {
-		return &Response{Status: int64(-1), Info: err.Error()}, err
+		return &Response{Status: int64(-1), Info: err.Error()}, nil
 	}
 
 	m, err := jsonStr2map(resStr)
@@ -60,15 +67,28 @@ func (g grpcServer) Step(ctx context.Context, request *StepRequest) (*Response, 
 		return &Response{Status: int64(-1), Info: err.Error()}, err
 	}
 
-	status := m["status"].(int64)
+	status := int64(m["status"].(float64))
 	if status == 2 {
-		state := m["state"].(amazonsChess.State)
+		s := m["state"].(map[string]interface{})
+		board, err := toIntSlice(s["board"])
+		if err != nil {
+			log.Fatal(err)
+		}
+		currentPlayer := int(s["current_player"].(float64))
+		state := amazonsChess.NewState(&board, currentPlayer)
 		return &Response{Status: status, Info: state.Str()}, nil
 	} else {
+		s := m["state"].(map[string]interface{})
+		board, err := toIntSlice(s["board"])
+		if err != nil {
+			log.Fatal(err)
+		}
+		currentPlayer := int(s["current_player"].(float64))
+		state := amazonsChess.NewState(&board, currentPlayer)
 		data := struct {
-			state  amazonsChess.State
-			winner int
-		}{state: m["state"].(amazonsChess.State), winner: m["winner"].(int)}
+			State  amazonsChess.State `json:"state"`
+			Winner int                `json:"winner,omitempty"`
+		}{State: *state, Winner: int(m["winner"].(float64))}
 
 		str, err := data2jsonStr(data)
 		if err != nil {
@@ -83,7 +103,7 @@ func (g grpcServer) Disconnect(ctx context.Context, request *DisconnectRequest) 
 	resStr, err := g.service.disconnect(request.GetIp())
 
 	if err != nil {
-		return &Response{Status: int64(-1), Info: err.Error()}, err
+		return &Response{Status: int64(-1), Info: err.Error()}, nil
 	}
 
 	m, err := jsonStr2map(resStr)
@@ -92,5 +112,5 @@ func (g grpcServer) Disconnect(ctx context.Context, request *DisconnectRequest) 
 		return &Response{Status: int64(-1), Info: err.Error()}, err
 	}
 
-	return &Response{Status: m["status"].(int64), Info: ""}, nil
+	return &Response{Status: int64(m["status"].(float64)), Info: ""}, nil
 }

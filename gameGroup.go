@@ -2,6 +2,8 @@ package pop_shark
 
 import (
 	"errors"
+	"fmt"
+	"github.com/fatih/color"
 	"github.com/murInJ/amazonsChess"
 	"time"
 )
@@ -14,7 +16,7 @@ type gameGroup struct {
 	service          *platformService
 }
 
-func NewGameGroup(maxWorker int, service *platformService) *gameGroup {
+func newGameGroup(maxWorker int, service *platformService) *gameGroup {
 	group := &gameGroup{
 		maxWorker:        maxWorker,
 		workerCurrentNum: 0,
@@ -58,9 +60,13 @@ func (g *gameGroup) run() {
 func (g *gameGroup) game(ip string) {
 	game := amazonsChess.Game{}
 
+	fmt.Printf("%s create game from %s\n",
+		color.New(color.FgHiYellow).Sprintf("RPC:"),
+		color.New(color.FgCyan).Sprintf(ip))
 	for {
 		select {
 		case msg := <-g.service.inMsgQueue.queueMap[ip]:
+
 			m, err := jsonStr2map(msg.(string))
 
 			if err != nil {
@@ -71,9 +77,15 @@ func (g *gameGroup) game(ip string) {
 			command := m["command"]
 			switch command {
 			case "connect":
+				fmt.Printf("%s recv connect request from %s\n",
+					color.New(color.FgHiYellow).Sprintf("RPC:"),
+					color.New(color.FgCyan).Sprintf(ip))
+
 				g.state[ip] = 1
 				var str string
-				data := struct{ status int }{status: 1}
+				data := struct {
+					Status int `json:"status,omitempty"`
+				}{Status: 1}
 				str, err = data2jsonStr(data)
 				if err != nil {
 					g.service.outMsgQueue.Send(ip, err)
@@ -81,7 +93,10 @@ func (g *gameGroup) game(ip string) {
 				}
 				g.service.outMsgQueue.Send(ip, str)
 			case "reset":
-				err := game.Reset(m["currentPlayer"].(int))
+				fmt.Printf("%s recv reset request from %s\n",
+					color.New(color.FgHiYellow).Sprintf("RPC:"),
+					color.New(color.FgCyan).Sprintf(ip))
+				err := game.Reset(int(m["current_player"].(float64)))
 
 				if err != nil {
 					g.service.outMsgQueue.Send(ip, err)
@@ -89,9 +104,9 @@ func (g *gameGroup) game(ip string) {
 				}
 
 				data := struct {
-					status int
-					state  amazonsChess.State
-				}{status: 2, state: *game.CurrentState}
+					Status int                `json:"status,omitempty"`
+					State  amazonsChess.State `json:"state"`
+				}{Status: 2, State: *game.CurrentState}
 
 				str, err := data2jsonStr(data)
 				if err != nil {
@@ -101,7 +116,11 @@ func (g *gameGroup) game(ip string) {
 				g.state[ip] = 2
 				g.service.outMsgQueue.Send(ip, str)
 			case "step":
-				move := *amazonsChess.NewChessMove(m["start"].(int), m["end"].(int), m["obstacle"].(int))
+
+				fmt.Printf("%s recv step request from %s\n",
+					color.New(color.FgHiYellow).Sprintf("RPC:"),
+					color.New(color.FgCyan).Sprintf(ip))
+				move := *amazonsChess.NewChessMove(int(m["start"].(float64)), int(m["end"].(float64)), int(m["obstacle"].(float64)))
 				if move.Equal(amazonsChess.ChessMove{}) {
 					game.CurrentState, _ = game.CurrentState.RandomMove()
 				} else {
@@ -114,13 +133,13 @@ func (g *gameGroup) game(ip string) {
 
 				if game.GameOver() {
 					data := struct {
-						status int
-						state  amazonsChess.State
-						winner int
+						Status int                `json:"status,omitempty"`
+						State  amazonsChess.State `json:"state"`
+						Winner int                `json:"winner,omitempty"`
 					}{
-						status: 3,
-						state:  *game.CurrentState,
-						winner: game.Winner,
+						Status: 3,
+						State:  *game.CurrentState,
+						Winner: game.Winner,
 					}
 
 					str, err := data2jsonStr(data)
@@ -130,12 +149,13 @@ func (g *gameGroup) game(ip string) {
 					}
 					g.state[ip] = 3
 					g.service.outMsgQueue.Send(ip, str)
+					goto end
 				}
 
 				data := struct {
-					status int
-					state  amazonsChess.State
-				}{status: 2, state: *game.CurrentState}
+					Status int                `json:"status,omitempty"`
+					State  amazonsChess.State `json:"state"`
+				}{Status: 2, State: *game.CurrentState}
 
 				str, err := data2jsonStr(data)
 				if err != nil {
@@ -145,11 +165,14 @@ func (g *gameGroup) game(ip string) {
 				g.state[ip] = 2
 				g.service.outMsgQueue.Send(ip, str)
 			case "disconnect":
+				fmt.Printf("%s recv disconnect request from %s\n",
+					color.New(color.FgHiYellow).Sprintf("RPC:"),
+					color.New(color.FgCyan).Sprintf(ip))
 				data := struct {
-					status int
-				}{status: 0}
+					Status int `json:"status"`
+				}{Status: 0}
 
-				str, _ := data2jsonStr(data)
+				str, err := data2jsonStr(data)
 				if err != nil {
 					g.service.outMsgQueue.Send(ip, err)
 					goto end

@@ -3,7 +3,13 @@ package pop_shark
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"github.com/murInJ/amazonsChess"
+	"io"
+	"io/ioutil"
 	"net"
+	"net/http"
+	"reflect"
 )
 
 func jsonStr2map(str string) (map[string]interface{}, error) {
@@ -71,4 +77,53 @@ func getIpFromAddr(addr net.Addr) net.IP {
 	}
 
 	return ip
+}
+
+func toIntSlice(actual interface{}) ([]int, error) {
+	var res []int
+	value := reflect.ValueOf(actual)
+	if value.Kind() != reflect.Slice && value.Kind() != reflect.Array {
+		return nil, errors.New("parse error")
+	}
+	eleType := value.Index(0).Kind()
+	if eleType == reflect.Float64 {
+		for i := 0; i < value.Len(); i++ {
+			res = append(res, int(value.Index(i).Interface().(float64)))
+		}
+	} else if eleType == reflect.Int {
+		for i := 0; i < value.Len(); i++ {
+			res = append(res, value.Index(i).Interface().(int))
+		}
+	} else if eleType == reflect.Interface {
+		for i := 0; i < value.Len(); i++ {
+			res = append(res, int(value.Index(i).Interface().(float64)))
+		}
+	}
+
+	return res, nil
+}
+
+func getIp() (string, error) {
+	responseClient, errClient := http.Get("http://ip.dhcp.cn/?ip") // 获取外网 IP
+	if errClient != nil {
+		return "", errClient
+	}
+	// 程序在使用完 response 后必须关闭 response 的主体。
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			return
+		}
+	}(responseClient.Body)
+
+	body, _ := ioutil.ReadAll(responseClient.Body)
+	clientIP := fmt.Sprintf("%s", string(body))
+	return clientIP, nil
+}
+
+func Map2state(m map[string]interface{}) *amazonsChess.State {
+	board, _ := toIntSlice(m["board"])
+	current_player := int(m["current_player"].(float64))
+	state := amazonsChess.NewState(&board, current_player)
+	return state
 }

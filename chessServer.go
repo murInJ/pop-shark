@@ -1,25 +1,27 @@
 package pop_shark
 
 import (
-	"google.golang.org/grpc"
 	"log"
 	"net"
+
+	"google.golang.org/grpc"
 )
 
 type ChessServer struct {
-	port       string
+	adress     string
 	grpcServer *grpcServer
 }
 
 func NewChessServer(port string) *ChessServer {
+	adress := "0.0.0.0:" + port
 	return &ChessServer{
-		port:       port,
-		grpcServer: NewGrpcServer(),
+		adress:     adress,
+		grpcServer: newGrpcServer(),
 	}
 }
 
 func (s ChessServer) Start() {
-	lis, err := net.Listen("tcp", s.port)
+	lis, err := net.Listen("tcp", s.adress)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}

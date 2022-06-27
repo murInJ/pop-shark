@@ -99,6 +99,8 @@ github.com/murInJ/amazonsChess v1.0.4 h1:utTNc0HQYuP0jHPX0EnEucT6CYX30srq8CZsDA7
 github.com/murInJ/amazonsChess v1.0.4/go.mod h1:5tREqwMqs3a2I4cxAGIg4/0JRLj17GgL4SqnblC24go=
 github.com/murInJ/amazonsChess v1.0.5 h1:+RRvrefE1ovHz7Hwf+ZqLAsAdylJwe/5D9XqHdS2Ruk=
 github.com/murInJ/amazonsChess v1.0.5/go.mod h1:5tREqwMqs3a2I4cxAGIg4/0JRLj17GgL4SqnblC24go=
+github.com/murInJ/amazonsChess v1.0.6 h1:6rvJ3PQXX4M4nSCDytYWx1gKN8QGANqtigkPg8qr8aA=
+github.com/murInJ/amazonsChess v1.0.6/go.mod h1:5tREqwMqs3a2I4cxAGIg4/0JRLj17GgL4SqnblC24go=
 github.com/pelletier/go-toml v1.2.0 h1:T5zMGML61Wp+FlcbWjRDT7yAxhJNAiPPLOFECq181zc=
 github.com/pelletier/go-toml v1.2.0/go.mod h1:5z9KED0ma1S8pY6P1sdut58dfprrGBbd/94hg7ilaic=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=

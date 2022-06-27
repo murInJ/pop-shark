@@ -3,6 +3,7 @@ package pop_shark
 import (
 	"errors"
 	"github.com/murInJ/amazonsChess"
+	"reflect"
 )
 
 //Service
@@ -19,13 +20,13 @@ type platformService struct {
 	gameGroup   *gameGroup
 }
 
-func NewService() *platformService {
+func newService() *platformService {
 	s := &platformService{
-		inMsgQueue:  NewMsgQueue(),
-		outMsgQueue: NewMsgQueue(),
+		inMsgQueue:  newMsgQueue(),
+		outMsgQueue: newMsgQueue(),
 	}
 
-	s.setGameGroup(NewGameGroup(25, s))
+	s.setGameGroup(newGameGroup(25, s))
 	return s
 }
 func (s *platformService) setGameGroup(group *gameGroup) {
@@ -38,9 +39,9 @@ func (s *platformService) reset(ip string, currentPlayer int) (string, error) {
 	}
 
 	data := struct {
-		command       string
-		currentPlayer int
-	}{command: "reset", currentPlayer: currentPlayer}
+		Command       string `json:"command,omitempty"`
+		CurrentPlayer int    `json:"current_player,omitempty"`
+	}{Command: "reset", CurrentPlayer: currentPlayer}
 
 	str, err := data2jsonStr(data)
 	if err != nil {
@@ -48,7 +49,12 @@ func (s *platformService) reset(ip string, currentPlayer int) (string, error) {
 	}
 
 	s.inMsgQueue.Send(ip, str)
-	return s.outMsgQueue.Receive(ip).(string), nil
+	msgi := s.outMsgQueue.Receive(ip)
+	msg, err := strProccess(msgi)
+	if err != nil {
+		return "", err
+	}
+	return msg, nil
 }
 
 func (s *platformService) step(ip string, move amazonsChess.ChessMove) (string, error) {
@@ -59,11 +65,11 @@ func (s *platformService) step(ip string, move amazonsChess.ChessMove) (string, 
 	val := move.GetVal()
 
 	data := struct {
-		command  string
-		start    int
-		end      int
-		obstacle int
-	}{command: "step", start: val[0], end: val[1], obstacle: val[2]}
+		Command  string `json:"command,omitempty"`
+		Start    int    `json:"start"`
+		End      int    `json:"end"`
+		Obstacle int    `json:"obstacle"`
+	}{Command: "step", Start: val[0], End: val[1], Obstacle: val[2]}
 
 	str, err := data2jsonStr(data)
 	if err != nil {
@@ -71,7 +77,12 @@ func (s *platformService) step(ip string, move amazonsChess.ChessMove) (string, 
 	}
 
 	s.inMsgQueue.Send(ip, str)
-	return s.outMsgQueue.Receive(ip).(string), nil
+	msgi := s.outMsgQueue.Receive(ip)
+	msg, err := strProccess(msgi)
+	if err != nil {
+		return "", err
+	}
+	return msg, nil
 }
 
 func (s *platformService) disconnect(ip string) (string, error) {
@@ -81,15 +92,20 @@ func (s *platformService) disconnect(ip string) (string, error) {
 	}
 
 	data := struct {
-		command string
-	}{command: "disconnect"}
+		Command string `json:"command,omitempty"`
+	}{Command: "disconnect"}
 
 	str, err := data2jsonStr(data)
 	if err != nil {
 		return "", nil
 	}
 	s.inMsgQueue.Send(ip, str)
-	return s.outMsgQueue.Receive(ip).(string), nil
+	msgi := s.outMsgQueue.Receive(ip)
+	msg, err := strProccess(msgi)
+	if err != nil {
+		return "", err
+	}
+	return msg, nil
 }
 
 func (s *platformService) connect(ip string) (string, error) {
@@ -98,13 +114,28 @@ func (s *platformService) connect(ip string) (string, error) {
 		return "", err
 	}
 	data := struct {
-		command string
-	}{command: "connect"}
+		Command string `json:"command,omitempty"`
+	}{Command: "connect"}
 
 	str, err := data2jsonStr(data)
 	if err != nil {
 		return "", nil
 	}
 	s.inMsgQueue.Send(ip, str)
-	return s.outMsgQueue.Receive(ip).(string), nil
+	msgi := s.outMsgQueue.Receive(ip)
+	msg, err := strProccess(msgi)
+	if err != nil {
+		return "", err
+	}
+	return msg, nil
+}
+
+func strProccess(in interface{}) (string, error) {
+	var msg string
+	if reflect.ValueOf(in).Kind() != reflect.String {
+		return "", in.(error)
+	} else {
+		msg = in.(string)
+		return msg, nil
+	}
 }

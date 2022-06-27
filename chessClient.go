@@ -19,11 +19,11 @@ type chessClient struct {
 
 func NewChessClient(clientPort string, serverAddress string) (*chessClient, error) {
 	var clientAddress string
-	ip, err := externalIP()
-	if err != nil {
-		clientAddress = ip.String() + ":" + clientPort
+	ip, err := getIp()
+	if err == nil {
+		clientAddress = ip + ":" + clientPort
 	} else {
-		clientAddress = "localhost:" + clientPort
+		clientAddress = "127.0.0.1:" + clientPort
 	}
 
 	conn, err := grpc.Dial(serverAddress, grpc.WithInsecure()) // 建立链接
@@ -47,7 +47,7 @@ func NewChessClient(clientPort string, serverAddress string) (*chessClient, erro
 		return nil, errors.New(res.Info)
 	}
 
-	fmt.Printf("%s %s connect to %s success",
+	fmt.Printf("%s %s connect to %s success\n",
 		color.New(color.FgHiYellow).Sprintf("RPC:"),
 		color.New(color.FgCyan).Sprintf(clientAddress),
 		color.New(color.FgCyan).Sprintf(serverAddress))
@@ -101,8 +101,8 @@ func (c chessClient) Reset(currentPlayer int) (*amazonsChess.State, error) {
 		return amazonsChess.NewState(nil, 0), err
 	}
 
-	state := m["state"].(amazonsChess.State)
-	return &state, nil
+	state := Map2state(m)
+	return state, nil
 }
 
 func (c chessClient) Step(move amazonsChess.ChessMove) (int, map[string]interface{}, error) {
@@ -119,6 +119,9 @@ func (c chessClient) Step(move amazonsChess.ChessMove) (int, map[string]interfac
 		return -1, nil, err
 	}
 
+	if res.Status == -1 {
+		return -1, nil, errors.New(res.Info)
+	}
 	m, err := jsonStr2map(res.Info)
 	if err != nil {
 		return -1, nil, err
@@ -126,9 +129,7 @@ func (c chessClient) Step(move amazonsChess.ChessMove) (int, map[string]interfac
 
 	if res.Status == 2 {
 		return 2, m, nil
-	} else if res.Status == 3 {
-		return 3, m, nil
 	} else {
-		return -1, nil, errors.New(res.Info)
+		return 3, m, nil
 	}
 }
